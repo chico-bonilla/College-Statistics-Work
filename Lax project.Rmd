@@ -1,0 +1,78 @@
+---
+title: "Lacrosse Project"
+author: "Chico Bonilla and Kristal Mainsah"
+date: "April 17, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/chico/Documents/STAT 304")
+library(ggplot2)
+library(dplyr)
+lax <- read.csv("laxproject.csv",header=T)
+lax.men <- lax %>% filter(gender == 'Men')
+lax.women <- lax %>% filter(gender == 'Women')
+lax.menAWAY <- lax.men %>% filter(team == 'AWAY')
+lax.womenAWAY <- lax.women %>% filter(team == 'AWAY')
+lax.menROA <- lax.men %>% filter(team == 'ROA')
+lax.womenROA <- lax.women %>% filter(team == 'ROA')
+fit.total = glm(lax$goal~lax$shotdist+lax$angleC+lax$shot+lax$Gaurded+lax$team+lax$year+lax$gender, family=binomial)
+
+fit.men <- glm(lax.men$goal~lax.men$shotdist+lax.men$angleC+lax.men$shot+lax.men$Gaurded+lax.men$team+lax.men$year, family=binomial)
+fit.women <- glm(lax.women$goal~lax.women$shotdist+lax.women$angleC+lax.women$shot+lax.women$Gaurded+lax.women$team+lax.women$year, family=binomial)
+
+fit.menROA <- glm(lax.menROA$goal~lax.menROA$shotdist+lax.menROA$angleC+lax.menROA$shot+lax.menROA$Gaurded+lax.menROA$year, family=binomial)
+fit.womenROA <- glm(lax.womenROA$goal~lax.womenROA$shotdist+lax.womenROA$angleC+lax.womenROA$shot+lax.womenROA$Gaurded+lax.womenROA$year, family=binomial)
+fit.menAWAY <- glm(lax.menAWAY$goal~lax.menAWAY$shotdist+lax.menAWAY$angleC+lax.menAWAY$shot+lax.menAWAY$Gaurded+lax.menAWAY$year, family=binomial)
+fit.womenAWAY <- glm(lax.womenAWAY$goal~lax.womenAWAY$shotdist+lax.womenAWAY$angleC+lax.womenAWAY$shot+lax.womenAWAY$Gaurded+lax.womenAWAY$year, family=binomial)
+
+```
+
+Let's take a look at some lacrosse data. This will help us determine the "value" of a shot. Essentially what we want to understand is how good a shot is based on a number of variables. For this analysis, we'll be looking at both men's and women's teams, the type of shot (high, medium, or low release), whether or not the shooter was guarded, the distance from the goal the shooter was, the angle of the shot in relation to the goal, whether the shooter was a player for Roanoke or the opposing team, and the year or season in which the game took place. We've filtered the overall data into multiple smaller subsets depending on what we need in order to make our statistical models. For instance, we have a data set made up of just the data points of the women's team, a data set containing just the men's team, as well as other data sets for Roanoke and opposing teams separated by gender.
+
+First, let's see if there is a difference in shot expectation between Roanoke teams and opposing teams. We can do this by looking at a t-test, comparing the home and away men's teams' expected shot values and the home and away women's teams' expected shot values.
+
+```{r echo=FALSE}
+lax.menROA$expected.goals<-fitted(fit.menROA)
+lax.menAWAY$expected.goals<-fitted(fit.menAWAY)
+lax.womenROA$expected.goals<-fitted(fit.womenROA)
+lax.womenAWAY$expected.goals<-fitted(fit.womenAWAY)
+
+t.test(lax.menROA$expected.goals,lax.menAWAY$expected.goals)
+t.test(lax.womenROA$expected.goals,lax.womenAWAY$expected.goals)
+```
+
+In both men's and women's cases, we can say that there is a difference between the Roanoke teams and the away teams in terms of shot expectation.
+
+Next let's take a look at the difference between men's and women's shot expectations. We can do this using the same t-test.
+
+```{r echo=FALSE}
+t.test(lax.men$expected.goals,lax.women$expected.goals)
+```
+
+Here we can see there is a clear difference between the shot expectation of the men's and women's teams. This may be due to the difference in aggression levels. Men's games may have a lot more aggression in them and thus the value of a shot in a men's game may be lower overall than the same shot in a women's game.
+
+Next let's take a look at what variables may actually be unhelpful in explaining shot expectations. We can do this by looking at a model that takes into account all data points.
+
+```{r echo=FALSE}
+summary(fit.total)
+```
+
+Looking at the p-values for all the variables tells us how significant that variable is to our model. In terms of the Guarded variable, we see that it is not significant. Therefore we can say that Guarded is not needed in our model. From this same summary we can see that the season is very significant. This means that the shot expectation differs between seasons.
+
+With all this information, our model looks like the following:
+
+$log(\frac{\Pi}{1-\Pi}) = 1123-0.01131*shotdist+0.3397*angleCS+1.533*shotHigh+1.443*shotLow+1.544*shotMed-0.5575*year+0.311*genderWomen$.
+
+All this means is that the probability that the shot taken is a goal is based on the variables in the model. This means that a short distance from the goal and a medium release shot would be a shot of high value regardless of the other variables.
+
+Let's try to visualize this data, splitting the data based on gender.
+
+```{r echo=FALSE}
+ggplot(lax, aes(x=shotdist,y=goal,color=factor(gender)))+
+  geom_point()+
+  stat_smooth(method="glm",method.args=list(family="binomial"),se=FALSE)+
+  ggtitle("Value of a Shot in Lacrosse Split by Gender")+
+  labs(y="Probability of a Goal",x="Distance From Goal",colour="Gender")
+```

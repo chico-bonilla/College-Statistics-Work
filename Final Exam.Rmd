@@ -1,0 +1,125 @@
+---
+title: "Final Exam"
+author: "Chico Bonilla"
+date: "April 24, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/chico/Documents/STAT 304")
+require(ggplot2)
+require(dplyr)
+require(car)
+require(MASS)
+river<-read.csv("http://math.roanoke.edu//childers//STAT304//kd.csv",header=T)
+river<-na.omit(river)
+fg1<-read.csv('http://math.roanoke.edu/childers/STAT304/fg.csv',header=T)
+fg1<-fg1[-c(1),]
+fg1$Dist2<-fg1$Distance^2
+kick.nfl <- fg1 %>% filter(League == 'NFL')
+kick.afl <- fg1 %>% filter(League == 'AFL')
+```
+
+# Part I
+
+Let's take a look at some data provided by the Virginia Institue of Marine Science. We'll be taking a look at the Chesapeake Bay and seeing if light attenuation can be explained by a number of predictor variables. Specifically, we'll be taking a look at the salinity, pH, dissolved oxygen, chlorophyll content, turbidity, and the depth of the water as well as the water temperature. Our goal here is to try to make a model that explains the light attenuation, labeled as Kd, using these seven variables. Let's first take a look at some histograms to understand the data.
+
+```{r echo=FALSE}
+par(mfrow=c(3,3))
+hist(river$YSI.Salinity, main="Histogram of Salinity", xlab="Salinity Values")
+hist(river$YSI.pH, main="Histogram of pH", xlab="pH Values")
+hist(river$YSI.DO, main="Histogram of Dissolved Oxygen", xlab="Dissolved Oxygen Values")
+hist(river$YSI.Chlorophyll, main="Histogram of the\nChlorophyll Content", xlab="Chlorophyll Content")
+hist(river$YSI.Turbidity, main="Histogram of the\nTurbidity of the Water", xlab="Turbidity Level")
+hist(river$Depth, main="Histogram of the\nDepth of the Water", xlab="Depth")
+hist(river$YSI.WTemp, main="Histogram of the\nWater Temperature", xlab="Temperature")
+```
+
+I'm worried about the variables dissolved oxygen, turbidity, and depth. The variable dissolved oxygen may have some outliers. Turbidity and depth also seem to have outliers. The pH graph also looks a little strange, but nothing immediately worrying. Let's continue by fitting a model. We'll do this by using the step function. What this step function does is it starts with a model that explains Kd by nothing at all, and slowly adds a variable at a time until adding a variable wouldn't be a significant enough change. The process can be seen below.
+
+```{r echo=FALSE}
+fit.full<-lm(river$Kd~river$YSI.Salinity+river$YSI.pH+river$YSI.DO+river$YSI.Chlorophyll+river$YSI.Turbidity+river$Depth
+             +river$YSI.WTemp)
+fit.null<-lm(river$Kd~1)
+step(fit.null, scope=list(lower=fit.null, upper=fit.full), direction="forward")
+```
+
+The step function tells us that all seven of our variables are significant enough to include in our model. We'll continue our analysis with this model.
+
+Next, let's see if we are worried about collinearity between any of our variables. We will do this by using the VIF function. This will give us a value between 1 and infinity for each variable. We're worried if any variable has a VIF value above 10. Let's take a look at that now.
+
+```{r echo=FALSE}
+vif(fit.full)
+```
+
+Looking at these values, we're not concerned with collinearity.
+
+Now let's talk about ridge and lasso regression. Ridge and Lasso regression are different regression methods that we can use if we are concerned with our assumptions and, specifically, collinear data. For this problem, it is not appropriate to use either method as our assumptions can be fixed with transformations and removal of outliers, and we do not have any concerns with collinearity. We'll stick with linear regression.
+
+Let's now look closer at any possible outliers. We can do this by looking at the leverage and Cook's values. These values deal with the residuals of the model, and high values are indicators of outliers. Let's look at those now.
+
+```{r echo=FALSE}
+stack<-ls.diag(fit.full)
+par(mfrow=c(1,2))
+plot(stack$hat, main="Scatter Plot of Leverage Values", ylab="Leverage Value")
+plot(stack$cooks, main="Scatter Plot of Cook's Values", ylab="Cook's Value")
+```
+
+It looks like there may be a few outliers. We can simply remove them and remake our model with the new data.
+
+```{r echo=FALSE}
+river.rmv<-river[which(stack$hat<=((2*(7+1))/3948)),]
+fit.rmv<-fit.full<-lm(river.rmv$Kd~river.rmv$YSI.Salinity+river.rmv$YSI.pH+river.rmv$YSI.DO+river.rmv$YSI.Chlorophyll
+                      +river.rmv$YSI.Turbidity+river.rmv$Depth+river.rmv$YSI.WTemp)
+par(mfrow=c(3,3))
+hist(river.rmv$YSI.Salinity, main="Histogram of Salinity", xlab="Salinity Values")
+hist(river.rmv$YSI.pH, main="Histogram of pH", xlab="pH Values")
+hist(river.rmv$YSI.DO, main="Histogram of Dissolved Oxygen", xlab="Dissolved Oxygen Values")
+hist(river.rmv$YSI.Chlorophyll, main="Histogram of the\nChlorophyll Content", xlab="Chlorophyll Content")
+hist(river.rmv$YSI.Turbidity, main="Histogram of the\nTurbidity of the Water", xlab="Turbidity Level")
+hist(river.rmv$Depth, main="Histogram of the\nDepth of the Water", xlab="Depth")
+hist(river.rmv$YSI.WTemp, main="Histogram of the\nWater Temperature", xlab="Temperature")
+```
+
+Still a bit of a skew, but I'm less worried about any violations in assumptions.
+
+Finally, let's look more specifically at what our model tells us.
+
+```{r echo=FALSE}
+summary(fit.rmv)
+```
+
+Our model has an $R^2$ value of 0.7752. This tells us that our predictors are good at explaining the Kd of the water. In more technical terms, the model explains 77% of the variation in our responses. All predictors are important, as shown by the step function, and we're not worried about any collinearity in the variables.
+
+# Part II
+
+Now let's take a look at some American football data. This data set focuses on kickers in their field goal attempts. Here, since we're explaining a binary variable (one that only takes a value of 0 or 1), we can't use linear regression. Instead, we'll use logistic regression to help us understand this data. We'll also want to make two different models, one for the AFL kicking performances and one for the NFL kicking performances. Let's take a look at both models now
+
+```{r echo=FALSE}
+fit.nfl <- glm(kick.nfl$Made~kick.nfl$Distance+kick.nfl$Dist2,family=binomial)
+fit.afl <- glm(kick.afl$Made~kick.afl$Distance+kick.afl$Dist2,family=binomial)
+summary(fit.nfl)
+summary(fit.afl)
+```
+
+Looking at the coefficients, we can see that in both models, distance has a negative coefficient. In practical terms, this means that the longer the distance, the lower the chance of making the field goal. The AFL also seems to have a higher probability of making a field goal than the NFL based on the intercept, or $\beta_0$, coefficient being larger in the AFL set. Also, the quadratic variable affects the model differently in the sets as well, with it having a negative impact in the NFL set and a positive yet small impact in the AFL set. Overall, from a first glance it seems that AFL kickers in general have a higher chance of making a field goal than those of the NFL.
+
+Let's now look at a model that includes both leagues.
+
+```{r echo=FALSE}
+fit.total <- glm(fg1$Made~fg1$Distance+fg1$Dist2+fg1$Z,family=binomial)
+summary(fit.total)
+```
+
+In the combined model, both the distance and quadratic variable negatively impact the kicker's probability of making a field goal. However, we can also see that the quadratic variable is not very significant for our model at all, with a p-value of 0.8828, well over our $\alpha$ of $0.05$.
+
+Finally, let's see if the leagues have different probabilities of scoring field goals. We can do this by using a t-test to compare the probabilities of making a field goal for each league.
+
+```{r echo=FALSE}
+kick.nfl$expected<-fitted(fit.nfl)
+kick.afl$expected<-fitted(fit.afl)
+t.test(kick.nfl$expected,kick.afl$expected)
+```
+
+Our t-test shows that there is a difference in the probability of scoring a field goal in different leagues.

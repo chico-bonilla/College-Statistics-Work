@@ -1,0 +1,69 @@
+---
+title: "Body Project"
+author: "Chico Bonilla and Kristal Mainsah"
+date: "April 3, 2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ggplot2)
+require(car)
+require(MASS)
+
+body<-read.table('http://math.roanoke.edu/childers/STAT304/body.txt',header=T)
+attach(body)
+```
+
+Everyone has different body types. What we aim to accomplish is to make a model that is able to predict someone's weight based on a number of body features. Let's take a look at all the variable names to start us off.
+
+```{r echo=FALSE}
+names(body)
+```
+
+That's a lot of variables to consider. Let's break it down! We'll start by picking 3 variables that we think would do a good job of explaining weight. We decided on the variables waist.girth, thigh.girth, and chest.girth. We felt that these were good predictors at explaining weight as heavier-set people tend to have a larger waist girth, thigh girth and chest girth. Let's take a look at the fitted model.
+```{r echo=FALSE}
+fit<-lm(weight~waist.girth+thigh.girth+chest.girth)
+summary(fit)
+```
+
+This seems like a good model, explaining 90% of the variation in the data (R-squared value of $0.9032$). The data also do not look collinear, but we can make sure by running a Variance Inflation Factor check. If we see a value greater than 10, then collinearity may be a problem.
+```{r echo=FALSE}
+vif(fit)
+```
+
+Looks like we won't have a problem. Just for exploration purposes, let's see how this model would look like if we used Ridge Regression and compare that model to the Least Squares model we just made.
+```{r echo=FALSE}
+fit.ridge<-lm.ridge(weight~waist.girth+thigh.girth+chest.girth,lambda=4.25)
+fit.ridge
+summary(fit)$coefficients
+```
+
+There doesn't seem to be a significant difference between our models. Therefore, we'll choose to stick with our Least Squares model for a couple of reasons: a) the VIF value of every variable is under 10, so we're not worried about collinearity, and b) we get the theory and distributions behind our model with Least Squares, which we lose when using Ridge Regression.
+
+Now let's start from scratch, building a new model with 10 variables this time. We decided on waist.girth, thigh.girth, chest.girth, shoulder.girth, bicep.girth, calf.girth, forearm.girth, pelvic.breadth, height, and hip.girth. Similarly to the selection of our initial three variables, we believe that these variables have a positive correlation with weight. Let's take a look at a linear model with all these variables included.
+```{r echo=FALSE}
+fit.ten<-lm(weight~waist.girth+chest.girth+thigh.girth+shoulder.girth+bicep.girth+calf.girth+
+              forearm.girth+pelvic.breadth+height+hip.girth)
+summary(fit.ten)
+```
+
+Using a backwords fitting method, the first variable we would remove would be bicep.girth. It also looks like that would be the only variable we would remove. To check, let's use R to do this for us, so we don't have to do it by hand. First, let's look at a forward fitting method.
+```{r echo=FALSE}
+fit.null<-lm(weight~1)
+step(fit.null, scope=list(lower=fit.null, upper=fit.ten), direction="forward")
+```
+
+Looks like bicep.girth is the only variable to remove. Now let's look at a backwards fitting method.
+```{r echo=FALSE}
+step(fit.ten, scope=list(lower=fit.null, upper=fit.ten), direction="backward")
+```
+
+Once again, bicep.girth is the only variable we remove. From these 9 remaining variables, we can see that waist.girth is a great predictor for weight. Along with waist.girth, we believe that height and calf.girth are also great predictors. Let's take a look at a fitted model with these three variables in mind.
+```{r echo=FALSE}
+fit.final<-lm(weight~waist.girth+height+calf.girth)
+summary(fit.final)
+```

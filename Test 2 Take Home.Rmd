@@ -1,0 +1,79 @@
+---
+title: "Test 2 Take Home"
+author: "Chico Bonilla"
+date: "March 19, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/chico/Documents/STAT 304")
+data<-read.csv("C:/Users/chico/Documents/STAT 304/Test 2 data.csv",header=T)
+library(ggplot2)
+```
+
+First, let's find a model help us understand the data. To start, let's plot the data points on a scatter plot.
+
+```{r echo=FALSE}
+ggplot(data,aes(x=X,y=Y))+
+  geom_point()+
+  ggtitle("Effect of New Medication")+
+  labs(y="Response",x="Health Indicator")
+```
+
+From this graph it's pretty clear that our data has an outlier. Let's look at some other graphs to make sure. To do this, let's fit a model and take a look at the standardized residuals and leverage values. These values help point out outliers in the data. A data point with a high leverage value or a high standardized residual is usually an outlier.
+
+```{r echo=FALSE}
+fit<-lm(data$Y~data$X+factor(data$Z))
+stack<-ls.diag(fit)
+par(mfrow=c(1,2))
+plot(stack$std.res,main="Standardized Residuals")
+plot(stack$hat,main="Leverage Values")
+```
+
+It seems that a data point has a standardized residual above 4, a crazy high value. Let's remove it and see if our model improves.
+
+```{r echo=FALSE}
+data.rmv<-data[-c(10),]
+fit.rmv<-lm(data.rmv$Y~data.rmv$X+factor(data.rmv$Z))
+stack.rmv<-ls.diag(fit.rmv)
+par(mfrow=c(1,2))
+plot(stack.rmv$std.res,main="Standardized Residuals")
+plot(stack.rmv$hat,main="Leverage Values")
+```
+
+These values look a lot better. Let's take a look at the overall model, including the categorical variable of medication.
+
+```{r echo=FALSE}
+summary(fit.rmv)
+ggplot(data.rmv,aes(x=X,y=Y,color=factor(Z)))+
+  geom_point()+
+  geom_line(aes(y=fitted(fit.rmv)))+
+  labs(title="Effect of New Medication",y="Response",x="Health Indicator")+
+  scale_color_manual(name="On New Medication?", 
+                     labels = c("No", 
+                                "Yes"),
+                     values = c('0'="red", 
+                                '1'="blue"))
+```
+
+This looks a lot better. Our new model explains 90% of the variance in the responses. This shows that the model is of high quality. We'll use this as our model for the rest of our analysis.
+
+Let's see if the fact that a patient is on the new medication or not is important to our result. To do this, we'll create two new data frames, one that only has the data of patients on the new medication and one that only has the data of patients not on the new medication.
+
+We'll then complete a two-sided t-test to determine if there is a statistically significant difference in the means of the responses. Here, our $H_0$ is $\mu_1=\mu_2$, where $\mu_1$ is the mean of the response from patients on the new medication and $\mu_2$ that of the patients not on the new medication. Our $H_a$ is $\mu_1 \neq \mu_2$. Let's perform the test in R with 95% confidence, meaning our $\alpha=0.05$.
+
+```{r echo=FALSE}
+data.meds<-data.frame("X"=data.rmv$X[data.rmv$Z!='0'],
+                      "Z"=data.rmv$Z[data.rmv$Z!='0'],
+                      "Y"=data.rmv$Y[data.rmv$Z!='0'])
+data.nomeds<-data.frame("X"=data.rmv$X[data.rmv$Z!='1'],
+                        "Z"=data.rmv$Z[data.rmv$Z!='1'],
+                        "Y"=data.rmv$Y[data.rmv$Z!='1'])
+
+t.test(data.meds$Y,data.nomeds$Y)
+```
+
+We see we get a p-value greater than 0.05, which means there is not enough statistically significant evidence to show that there is a difference in the means. So, we find that the medication does not affect the response.
+
+To summarize in layman's terms, there seemed to be an outlier in the data given to me. Therefore the data point, with a health indicator of 118, was not taken into account when performing this statistical analysis. After analyzing the data, it would seem that the new medication isn't having much of an effect on a patient's health. There's not enough evidence to show that it is any different than patients not on the new medication.
