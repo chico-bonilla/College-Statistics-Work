@@ -1,0 +1,97 @@
+---
+title: "Stat 302 Test 3 Part 1"
+author: "Chico Bonilla"
+date: "December 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r,echo=FALSE,include=FALSE}
+require(oddsratio)
+require(mosaic)
+cool<-read.csv("C:\\Users\\chico\\OneDrive\\Documents\\STAT 302\\test3.csv")
+```
+Mountain View College, a small liberal arts school in Southwest Tennessee, has given us some data on a random sample of 50 of their students and asked us to help analyze it. We have a few variables to look at, including:
+
+1) The student's GPA,
+2) If the student plays a varsity sport,
+3) If the student is in the Honors program,
+4) If the student visits the library more than 3 days a week,
+5) If the student visits the gym at least once a week,
+6) If the student eats breakfast in the dining hall at least 4 days a week,
+7) The student's residence hall, categorized as A, B, C, and D,
+8) The student's gender,
+9) The internet bandwidth the student is using if they live in hall A, and
+10) If the student rates their experience at the college as very positive
+
+Our first question is if a higher percentage of students playing a varsity sport visit the gym at least once a week than those that do not. Let's look at a table of this data. The row of the following table is if the student visits the gym or not, signified by a 1 if they do and a 0 if they don't. The column is if the student is in the Honors program or not, again signified by a 1 if they do and a 0 if they don't.
+```{r,echo=FALSE}
+cool.varGym <- table(cool$Gym,cool$Varsity.Sport)
+cool.varGym
+```
+Now, let's look at our original question. We can find this by performing a proportion test, which will tell us if there is statistically significant evidence to show that more varsity sport players visit the gym at least once a week than those that don't. Here, I'll include the output this test gives us in R, a program we use for statistical methods.
+```{r,echo=FALSE}
+cool.varGym <- table(cool$Gym,cool$Varsity.Sport)
+prop.test(cool$Gym~cool$Varsity.Sport,alternative="greater")
+```
+What this test tells us is that we cannot be sure that more varsity sport players visit the gym than those who don't.
+
+The next question we'll ask is the likelihood of students to visit the library more than 3 times a week. Specifically, we'll look at students in and not in the Honors program. Let's again look at a table of the data. The row will tell us if the student is in the Honors program, and the column will tell us if the student visits the library more than 3 times a week. Again, for both of these, a 0 means the student does not or is not, and a 1 means the student does or is.
+```{r,echo=FALSE}
+cool.honorsLib <- table(cool$Honors,cool$Library)
+cool.honorsLib
+```
+Now, to find the likelihood of Honors students to visit the library as opposed to those who aren't in the Honors program, we will perform a test called an Odds Ratio. This will give us a number, which will tell us how likely an event is (in this case visiting the library more than 3 times a week) given a variable (in this case, if the student is in the Honors program). The Odds Ratio gives us the following number:
+```{r,echo=FALSE}
+oddsRatio(cool.honorsLib)
+```
+This tells us that we can't tell if it's more likely Honors students visit the library more than 3 times a week.
+
+Our third question we asked is if there was a relationship between a student's residence hall and the student eating breakfast regularly. To do this, we'll look at the method known as the Chi Squared test. This will give us the probability that a student's breakfast eating habits are described by the residence hall in which they live in. Performing a Chi Squared test gives us the following:
+```{r,echo=FALSE}
+chisq.test(cool$Hall,cool$Breakfast)
+```
+In this output, we're focusing on the p-value, which tells us the probability of an event (in this case, a student eating breakfast) based on a given variable (in this case, the student's residence hall). This is essentially saying that we do not have enough statistically significant evidence to say with confidence a student's breakfast eating habits can be explained by their residence hall.
+
+Our fourth question is if there is a relationship between the student's residence hall and their GPA. Let's first look at a graph of the data.
+```{r,echo=FALSE}
+plot(cool$Hall,cool$GPA,main="Relationship Between a Student's Residence Hall and Their GPA",xlab="Residence Hall",ylab="GPA")
+```
+
+This is a boxplot, which tells us a few things. Each horizontal line on the box gives us a statistic. The lowest line tells us the minimum value (in this case, the lowest GPA) in each category. The second line, the first line on the rectangle (or box, hence the name boxplot), tells us the lower quartile of the data, which signifies that 25% of the data in this category is less than that value. The thicker line in the middle of the box is the median data value. The top of the box signifies the upper quartile, which means 25% of the data is above this point. Finally, the top most line gives us the maximum value in the category. Any circles above or below the maximum and minimum values are outliers.
+
+Now, with that explanation out of the way, let's look more at what information we can get out of this. Graphically, it seems that there are differences in GPA based on the residence hall, however the differences do not seem great. To get a definite answer, we'll run a test known as Analysis of Variance, which will tell us the probability that the means of each group are different. Running this test, we get the following:
+```{r,echo=FALSE}
+cool.lm <- lm(cool$GPA~cool$Hall)
+anova(cool.lm)
+```
+We'll focus on the last column on the right, giving us the p-value, which tells us the probability that the means of each group are the same. We see that we cannot say with confidence that there is statistically significant evidence that there are differences in the GPAs of student's in different residence halls, so we cannot say there is a relationship between these two variables.
+
+Our fifth question is if there is a relationship between students visiting the library and their GPA. We're wondering if students that visit the library more than 3 times a week have a higher GPA than those that do not. Let's take a look at another graph for this set of data.
+```{r,echo=FALSE}
+plot(as.factor(cool$Library),cool$GPA,main="Relationship Between Student's Visiting the Library and Their GPA",xlab="Does the Student Visit the Library More Than 3 Times a Week?",ylab="Student's GPA")
+```
+
+This is another boxplot. From a glance, it does not seem that there is a difference between a student's GPA and whether or not they visit the library more than 3 times a week. However, to be sure, we must run a test on the data. We'll run a test known as a Two Sample t-test, which will give us the probability that the difference in the means of the student's GPA is not different. We get the following output:
+```{r,echo=FALSE}
+t.test(cool$GPA,cool$Library,alternative="greater")
+```
+What this tells us is that there is statistically significant evidence to say with confidence that there is a difference in the means of the student's GPA based on their visits to a library per week, and that students who visit the library more than 3 times a week do have on average a higher GPA than those that do not.
+
+Finally, our sixth and last question is the likeliness of students having a positive experience at the college. Let's first look at the student's GPA to describe this. Here's a graph representing the data:
+```{r,echo=FALSE}
+plot(cool$GPA,cool$Positive.Experience,main="Relationship Between GPA and Positive Experience",xlab="GPA",ylab="Probability of Positive Experience")
+```
+
+Now, from this we can create a prediction curve, which will give us a prediction across the values of GPA of how students rate their experience at Mountain View College. We can do this by analyzing the data using a method known as Logistic Regression. Let's take another look at the graph with the curve.
+
+```{r,echo=FALSE}
+plot(cool$GPA,cool$Positive.Experience,main="Relationship Between GPA and Positive Experience",xlab="GPA",ylab="Probability of Positive Experience")
+cool.GPAPos = glm(Positive.Experience~GPA,family=binomial,cool)
+curve(predict(cool.GPAPos,data.frame(GPA=x),type="resp"),add=TRUE)
+points(cool$GPA,fitted(cool.GPAPos),pch=20)
+```
+
+We can see with this curve that the higher the student's GPA, the more likely it is that they will rate their experience at the college as positive. For example, a student with a 3.0 GPA has about a 61% chance to rate their experience as positive while a student with a GPA of 2.5 has about a 43% chance to rate their experience as positive. The student's GPA seems to be the best indicator of the student rating their experience as positive.

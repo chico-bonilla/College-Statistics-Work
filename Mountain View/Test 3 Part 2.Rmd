@@ -1,0 +1,66 @@
+---
+title: "Stat 302 Test 3 Part 2"
+author: "Chico Bonilla"
+date: "December 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r,echo=FALSE,include=FALSE}
+require(oddsratio)
+require(mosaic)
+cool<-read.csv("C:\\Users\\chico\\OneDrive\\Documents\\STAT 302\\test3.csv")
+```
+This second part will include a more detailed report of the statistical methods used in Part 1 of this report, as well as explanations of why those specific methods were used, R code, graphs, and anything else deemed too technical for a report on the data.
+
+For question 1, we ran a 2 sample proportion test with the following code:
+```{r}
+prop.test(cool$Gym~cool$Varsity.Sport,alternative="greater")
+```
+We did this because both Gym and Varsity.Sport are categorical variables, and we wanted to find the percentage of students visiting the gym if they played a varsity sport versus if they didn't play a varsity sport. A proportion test allows us to look at two categorical variables and get a probability that the means are the same.
+
+For question 2, we ran an Odds Ratio test on a table representing students visiting the library more than 3 times a week and if the student was in Honors or not. The code is provided below.
+```{r}
+cool.honorsLib <- table(cool$Honors,cool$Library)
+oddsRatio(cool.honorsLib)
+```
+We chose an Odds Ratio test because again we have two categorical variables but this time we wanted to see the likelihood of an event happening. Odds Ratio is perfect for this as it lets us analyze the likelihood of events occuring given a certain variable. If Odds Ratio gives us 1, then there is no relation. If Odds Ratio is greater than 1, than there is a high chance of the event occuring and if Odds Ratio is less than 1 then there is a low chance of the event occuring. Here, we got an Odds Ratio of 0.64, telling us there is a low chance that students visiting the library can be explained by the variable of if the student is in the Honors program.
+
+Question 3 asked us to find a relationship between residence hall and eating breakfast regularly. When I hear relationship with to categorical variables, I think Chi Squared. So, I ran a Chi Squared test on the data, with the code below.
+```{r}
+chisq.test(cool$Hall,cool$Breakfast)
+```
+
+Question 4 asked us to investigate the relationship between residence hall and GPA. I used a box plot to graphically portray the data, with the code below.
+
+```{r}
+plot(cool$Hall,cool$GPA,main="Relationship Between a Student's Residence Hall and Their GPA",xlab="Residence Hall",ylab="GPA")
+```
+
+In order to find the relationship between these two, I ran an ANOVA test on the data. I did this because we had a categorical explanatory variable in the residence halls, and a quantitative response variable in the GPA. We run this with the following code.
+```{r}
+cool.lm <- lm(cool$GPA~cool$Hall)
+anova(cool.lm)
+```
+
+Question 5 asked us to find a difference between students visiting the library and their GPA. We first used a box plot to show the data, with library acting as a factor because it is a categorical variable stored as a quantitative variable with values 0 and 1.
+
+```{r}
+plot(as.factor(cool$Library),cool$GPA,main="Relationship Between Student's Visiting the Library and Their GPA",xlab="Does the Student Visit the Library More Than 3 Times a Week?",ylab="Student's GPA")
+```
+
+We then ran a t-test on the data, as we have a categorical explanatory variable with 2 levels, {0,1}, and a quantitative response variable in the GPA.
+```{r}
+t.test(cool$GPA,cool$Library,alternative="greater")
+```
+
+Question 6 asked us to see if GPA was a good predictor for students rating their experience at the college as positive. We plot the data and create a curve on the graph using logistic regression as we have a quantitative explanatory variable in GPA and a categorical response variable with 2 levels in the rating of their experience. The code is shown below.
+
+```{r}
+plot(cool$GPA,cool$Positive.Experience,main="Relationship Between GPA and Positive Experience",xlab="GPA",ylab="Probability of Positive Experience")
+cool.GPAPos = glm(Positive.Experience~GPA,family=binomial,cool)
+curve(predict(cool.GPAPos,data.frame(GPA=x),type="resp"),add=TRUE)
+points(cool$GPA,fitted(cool.GPAPos),pch=20)
+```
